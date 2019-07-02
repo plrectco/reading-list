@@ -314,6 +314,33 @@ function addReadingItem (info, readingListEl, callback) {
 }
 
 /**
+ * Sets the item in the reading list to viewed.
+ *
+ * @param {string} url the url of the reading item to set to true.
+ * @param {elementNodeReference} element - (optional) reading list item
+ */
+function setReadingItemViewed (url, element) {
+  chrome.storage.sync.get(url, page => {
+    if (page[url]) {
+      page[url].viewed = true
+      chrome.storage.sync.set(page)
+    }
+  })
+  // If element is truthy, remove the element
+  if (element) {
+    // Listen for the end of an animation
+    element.addEventListener('animationend', () => {
+      element.classList.add('read')
+      element.classList.remove('unread')
+      element.classList.remove('slideout')
+    })
+
+    // Add the class to start the animation
+    element.className += ' slideout'
+  }
+}
+
+/**
  * Remove a reading list item from the DOM, storage, or both
  *
  * @param {string} url (optional) - URL of the page to remove
@@ -410,7 +437,11 @@ function onReadingItemClick (e) {
   // If the target is a delete button, remove the reading item
   // Or if the target is a edit button, edit the title
   if (target.classList.contains('delete-button')) {
-    removeReadingItem(target.id, target.parentNode)
+    if (target.parentNode.classList.contains('unread')) {
+      setReadingItemViewed(target.id, target.parentNode)
+    } else {
+      removeReadingItem(target.id, target.parentNode)
+    }
   } else if (target.classList.contains('edit-button')) {
     switchToInput(target.parentNode)
   } else if ((isPopup || isSidebar) && target.classList.contains('item-link')) {
